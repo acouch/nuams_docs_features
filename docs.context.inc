@@ -35,11 +35,17 @@ function docs_context_default_contexts() {
           'region' => 'sidebar_second',
           'weight' => '-10',
         ),
+        'docs-docs_toc' => array(
+          'module' => 'docs',
+          'delta' => 'docs_toc',
+          'region' => 'sidebar_second',
+          'weight' => '-9',
+        ),
         'book-navigation' => array(
           'module' => 'book',
           'delta' => 'navigation',
           'region' => 'sidebar_second',
-          'weight' => '-9',
+          'weight' => '-8',
         ),
       ),
     ),

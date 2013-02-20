@@ -38,8 +38,8 @@ function docs_filter_default_formats() {
             'box' => array(
               'title' => 'Table of Contents',
               'minlevel' => '2',
-              'maxlevel' => '6',
-              'hide_show' => 1,
+              'maxlevel' => '2',
+              'hide_show' => 0,
               'collapsed' => 0,
             ),
             'header' => array(
@@ -58,8 +58,8 @@ function docs_filter_default_formats() {
             'back_to_top' => array(
               'label' => '',
               'location' => 'bottom',
-              'minlevel' => '2',
-              'maxlevel' => '6',
+              'minlevel' => '1',
+              'maxlevel' => '1',
               'anchor' => 'toc',
               'scroll' => 0,
             ),
