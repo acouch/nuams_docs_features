@@ -1,0 +1,112 @@
+<?php
+/**
+ * @file
+ * Code for the Docs feature.
+ */
+
+include_once 'docs.features.inc';
+
+/**
+ * Implements hook_block_info().
+ */
+function docs_block_info() {
+  $blocks['docs_toc'] = array(
+    'info' => t('DKAN Docs TOC'),
+    'cache' => DRUPAL_NO_CACHE
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function docs_block_view($delta = '') {
+  $block = array();
+
+  switch ($delta) {
+    case 'docs_toc':
+      $block['subject'] = t('On This Page');
+      $block['content'] = docs_toc();
+      break;
+  }
+  return $block;
+}
+
+/**
+ * Adds TOC to current node.
+ */
+function docs_toc() {
+  $node = menu_get_object();
+
+  if (isset($node) && isset($node->body[$node->language])) {
+    $text = '[toc]';
+    // generate text some how, from a node or manually
+    $text .= $node->body[$node->language][0]['value'];
+    // format is the input format that has TOC enabled
+    $format = 'full_html';
+    // check the markup of the format
+    $text = check_markup($text, $format);
+    // process the text of the page to add a TOC
+    //_tableofcontents_process_text($output);
+    $toc = _tableofcontents_toc_extract($text);
+    // Set the [toc] globally
+    tableofcontents_toc($toc);
+    // Process the headers on this page (we have to do this)
+    module_load_include('inc', 'tableofcontents');
+    // load the global toc instance
+    $toc =& tableofcontents_toc();
+    // add the headers
+    $text = _tableofcontents_headers($text);
+    // theme the toc output
+    $html =  theme('tableofcontents_toc', array('toc' => $toc));
+    return $html;
+  }
+}
+
+/**
+ * Implements hook_field_attach_view_alter();
+ */
+function docs_field_attach_view_alter(&$output, $context) {
+  if ($context['entity_type'] == 'node' && $context['entity']->type == 'documentation_item') {
+    // Find out if we're processing this 'body'
+    if (isset($output['body'])) {
+      if ($context['view_mode'] == 'full') {
+        $entity_type = $context['entity_type'];
+        list($id, $vid, $bundle) = entity_extract_ids($entity_type, $context['entity']);
+        $toc_cheat = '[toc on_off::hide=0 on_off::automatic=0 on_off::min_limit=5 box::title=Table+of+Contents box::minlevel=2 box::maxlevel=6 box::hide_show=1 box::collapsed=0 header::id_strip::digits=0 header::id_strip::dashes=0 header::id_strip::periods=0 header::id_strip::underscores=0 header::id_strip::colons=0 header::id_prefix=hdr header::id_sep=- header::id_gen=title header::allowed=%3Cem%3E+%3Ci%3E+%3Cstrong%3E+%3Cb%3E+%3Cu%3E+%3Cdel%3E+%3Cins%3E+%3Csub%3E+%3Csup%3E+%3Ccite%3E+%3Cstrike%3E+%3Cs%3E+%3Ctt%3E+%3Cspan%3E+%3Cfont%3E+%3Cabbr%3E+%3Cacronym%3E+%3Cdfn%3E+%3Cq%3E+%3Cbdo%3E+%3Cbig%3E+%3Csmall%3E back_to_top::label= back_to_top::location=bottom back_to_top::minlevel=2 back_to_top::maxlevel=6 back_to_top::anchor=toc back_to_top::scroll=0 numbering::method=0 numbering::headers=0 numbering::mode=0 numbering::prefix= numbering::separator=. numbering::suffix=. ]';
+        $text = $original = $toc_cheat . $output['body'][0]['#markup'];
+        // Apply some tests to see if we're putting a [toc] on this page
+        if (_tableofcontents_apply_toc($text, $entity_type, $bundle)) {
+          // Process the headers on this page (we have to do this)
+          module_load_include('inc', 'tableofcontents');
+          $toc =& tableofcontents_toc();
+          $text = _tableofcontents_headers($text);
+          // Check to see if we have a cached copy of the [toc]
+          if (!($html = tableofcontents_cache_get($entity_type, $bundle, $vid, 'body', $text))) {
+            // We haven't. So produce the [toc] fully rendered
+            $html =  theme('tableofcontents_toc', array('toc' => $toc));
+            tableofcontents_cache_set($entity_type, $bundle, $vid, 'body', $text, $html);
+          }
+
+          // Add the styling and controls
+          $settings = array('tableofcontents' => array(
+            'collapse' => !!$toc['box']['collapsed'],
+            'scroll' => !!$toc['back_to_top']['scroll'],
+          ));
+          drupal_add_js($settings, 'setting');
+          $path = drupal_get_path('module', 'tableofcontents');
+          if (!empty($toc['back_to_top']['scroll'])) {
+            drupal_add_js($path . '/js/jquery.scrollTo-min.js');
+            drupal_add_js($path . '/js/jquery.localscroll-min.js');
+          }
+          drupal_add_js($path . '/js/tableofcontents.js');
+          drupal_add_css($path . '/tableofcontents.css');
+          $docs_path = drupal_get_path('module', 'docs');
+          drupal_add_css($docs_path . '/docs.css');
+        }
+      }
+    }
+  }
+}
+
