@@ -88,6 +88,10 @@ function docs_field_attach_view_alter(&$output, $context) {
             $html =  theme('tableofcontents_toc', array('toc' => $toc));
             tableofcontents_cache_set($entity_type, $bundle, $vid, 'body', $text, $html);
           }
+          if ($toc['on_off']['automatic'] != 3) {
+            // Automatic "3" means don't put it on the page (it may go into a block).
+            $output['body'][0]['#markup'] = preg_replace(TABLEOFCONTENTS_REMOVE_PATTERN, $html, $text);
+          }
 
           // Add the styling and controls
           $settings = array('tableofcontents' => array(
